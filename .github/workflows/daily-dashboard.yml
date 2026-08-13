@@ -1,0 +1,7 @@
+cd pm-capital-dashboard   # 解壓咗個 zip 之後
+git init
+git add .
+git commit -m "Initial dashboard setup"
+git branch -M main
+git remote add origin https://github.com/你的帳號/pm-capital-dashboard.git
+git push -u origin main
