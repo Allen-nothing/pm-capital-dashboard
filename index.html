@@ -2,10 +2,197 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<title>PM Capital Allocation Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PM Capital Allocation Dashboard · 2026-08-13</title>
+<style>
+  :root {
+    --navy: #12294a;
+    --brown: #6b3e10;
+    --gold-bg: #fdf3e0;
+    --gold-border: #c8912a;
+    --gray-bg: #f2f3f4;
+    --pink-bg: #fdecec;
+    --text-dark: #1c1c1c;
+    --text-muted: #6b7280;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang HK", "Noto Sans HK", Arial, sans-serif;
+    background: #ffffff;
+    margin: 0;
+    padding: 24px;
+    color: var(--text-dark);
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  .header {
+    background: var(--navy);
+    color: #fff;
+    padding: 22px 28px;
+    border-radius: 10px 10px 0 0;
+  }
+  .header .eyebrow {
+    letter-spacing: 3px;
+    font-size: 13px;
+    opacity: 0.85;
+    text-transform: uppercase;
+    margin: 0 0 6px 0;
+  }
+  .header h1 {
+    font-size: 22px;
+    margin: 0;
+    font-weight: 700;
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    padding: 22px 4px;
+  }
+  .card {
+    border-radius: 8px;
+    padding: 18px;
+    min-height: 140px;
+  }
+  .card-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .card-confidence {
+    border: 2px solid #b8860b;
+    background: #fff;
+  }
+  .confidence-score {
+    font-size: 34px;
+    font-weight: 800;
+    color: #b8860b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .confidence-status {
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .confidence-sub {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-top: 2px;
+  }
+  .card-trade { background: var(--gold-bg); border: 1px solid var(--gold-border); }
+  .card-longterm { background: var(--gray-bg); }
+  .card-avoid { background: var(--pink-bg); }
+  .card-ticker {
+    font-size: 26px;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .card-trade .card-ticker { color: #a06a10; }
+  .card-longterm .card-ticker { color: #1a7a3c; }
+  .card-avoid .card-ticker { color: #c0392b; }
+  .card-detail { font-size: 14px; font-weight: 600; }
+  .card-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+  .action-bar {
+    background: var(--brown);
+    color: #fff;
+    padding: 16px 22px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 6px 6px 0 0;
+    margin-top: 8px;
+  }
+  .action-detail {
+    background: #f5f6f8;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    padding: 18px 22px;
+    border-radius: 0 0 6px 6px;
+    font-size: 15px;
+  }
+  .action-detail .avoid-text { color: #c0392b; font-weight: 700; }
+  .action-detail .label { font-weight: 700; }
+  .proxy-note {
+    font-size: 12.5px;
+    color: #a06a10;
+    background: #fdf3e0;
+    border: 1px solid var(--gold-border);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin: 4px 4px 0 4px;
+  }
+  .disclaimer {
+    margin-top: 18px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-top: 1px solid #e5e7eb;
+  }
+  .footer-meta {
+    font-size: 11px;
+    color: #9ca3af;
+    text-align: right;
+    margin-top: 8px;
+  }
+  @media (max-width: 800px) {
+    .cards { grid-template-columns: repeat(2, 1fr); }
+    .action-detail { grid-template-columns: 1fr; gap: 10px; }
+  }
+</style>
 </head>
-<body style="font-family: sans-serif; padding: 40px; color: #333;">
-  <h2>尚未產生報告 / Not yet generated</h2>
-  <p>呢個檔案會喺 GitHub Actions 第一次執行後（每日 08:00 HKT，或手動 Run workflow）自動被覆蓋。</p>
+<body>
+<div class="wrap">
+  <div class="header">
+    <p class="eyebrow">PM CAPITAL ALLOCATION DASHBOARD</p>
+    <h1>2026-08-13 · EXECUTIVE BRIEF</h1>
+  </div>
+
+  <p class="proxy-note">⚠ Trend history still building (need 20 trading days) — scores currently use a same-day % change proxy and will sharpen over the next few weeks.</p>
+
+  <div class="cards">
+    <div class="card card-confidence">
+      <div class="card-label">PM 信心指數 · Confidence Index</div>
+      <div class="confidence-score">🟡 66.3</div>
+      <div class="confidence-status">SELECTIVE · 選擇性部署</div>
+      <div class="confidence-sub">Deploy 25-50%</div>
+    </div>
+    
+        <div class="card card-trade">
+          <div class="card-label">今晚交易 · Tonight's Trade</div>
+          <div class="card-ticker">SPCX</div>
+          <div class="card-detail">Momentum Long (building history)</div>
+          <div class="card-sub">Conv 7.8</div>
+        </div>
+    
+        <div class="card card-longterm">
+          <div class="card-label">長線首選 · Long-Term Pick</div>
+          <div class="card-ticker"><span class="dot">🟢</span>SMCI</div>
+          <div class="card-detail">AI Server Hardware</div>
+          <div class="card-sub">Score 90</div>
+        </div>
+    
+        <div class="card card-avoid">
+          <div class="card-label">避免交易 · Avoid</div>
+          <div class="card-ticker"><span class="dot">🔴</span>PLTR</div>
+          <div class="card-detail">NO TRADE</div>
+        </div>
+  </div>
+
+  <div class="action-bar">行動結論：🟡 選擇性部署 SELECTIVE</div>
+  <div class="action-detail">
+    <div><span class="label">首選：</span>SPCX Momentum Long (building history)</div>
+    <div><span class="label">建議部署：</span>Deploy 25-50%</div>
+    <div class="avoid-text"><span class="label">避免：</span>PLTR</div>
+  </div>
+
+  <div class="disclaimer">
+    本頁面由程式自動生成，僅供個人參考，並非投資建議。Conviction 分數及策略標籤基於技術動能的簡化演算法，
+    並非真實期權 IV / Greeks 分析（Finnhub 免費方案不提供期權鏈數據）。交易決策及風險自負。
+    Index components — Trend: 53.9 · VIX: 76.5 ·
+    Breadth: 72.7 (8/11 sectors up).
+  </div>
+  <div class="footer-meta">Generated 2026-08-13 18:59 HKT · Data: Finnhub</div>
+</div>
 </body>
 </html>
