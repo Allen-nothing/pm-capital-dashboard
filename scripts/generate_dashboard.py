@@ -341,11 +341,14 @@ COLOR_MAP = {
     "red": "#c0392b",
 }
 
-def render_html(confidence, classification, tonight, long_term, avoid, quotes):
+def render_html(confidence, classification, tonight, long_term, avoid, quotes, scored_watchlist):
     color = COLOR_MAP[classification["color"]]
     dot = {"green": "🟢", "gold": "🟡", "red": "🔴"}[classification["color"]]
     now_hkt = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
     date_str = now_hkt.strftime("%Y-%m-%d")
+
+    # Full watchlist data for the client-side browse dropdown (view-only, no writes).
+    browse_data = json.dumps(scored_watchlist, ensure_ascii=False)
 
     proxy_note = ""
     if confidence["proxy_mode"]:
@@ -506,6 +509,77 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes):
     border-radius: 6px;
     margin: 4px 4px 0 4px;
   }}
+  .browse-section {{
+    margin-top: 24px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 18px 22px;
+  }}
+  .browse-section h2 {{
+    font-size: 15px;
+    margin: 0 0 12px 0;
+    color: var(--navy);
+  }}
+  .browse-controls {{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }}
+  .browse-controls select {{
+    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #c8912a;
+    background: #fff;
+    min-width: 220px;
+  }}
+  .browse-chips {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }}
+  .browse-chip {{
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    cursor: pointer;
+    color: var(--text-dark);
+  }}
+  .browse-chip.active {{
+    background: var(--navy);
+    color: #fff;
+    border-color: var(--navy);
+  }}
+  .browse-detail {{
+    background: var(--gray-bg);
+    border-radius: 8px;
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }}
+  .browse-detail .bd-item .bd-label {{
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }}
+  .browse-detail .bd-item .bd-value {{
+    font-size: 17px;
+    font-weight: 700;
+  }}
+  .browse-detail .bd-theme {{
+    grid-column: 1 / -1;
+    font-size: 13px;
+    color: var(--text-muted);
+  }}
+  @media (max-width: 800px) {{
+    .browse-detail {{ grid-template-columns: repeat(2, 1fr); }}
+  }}
   .disclaimer {{
     margin-top: 18px;
     padding: 12px 16px;
@@ -553,6 +627,15 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes):
     <div class="avoid-text"><span class="label">避免：</span>{avoid['symbol']}</div>
   </div>
 
+  <div class="browse-section">
+    <h2>全部自選股評分 · Browse Watchlist ({len(scored_watchlist)} symbols)</h2>
+    <div class="browse-controls">
+      <select id="browseSelect" onchange="renderBrowseDetail(this.value)"></select>
+    </div>
+    <div class="browse-chips" id="browseChips"></div>
+    <div class="browse-detail" id="browseDetail" style="margin-top:14px;"></div>
+  </div>
+
   <div class="disclaimer">
     本頁面由程式自動生成，僅供個人參考，並非投資建議。Conviction 分數及策略標籤基於技術動能的簡化演算法，
     並非真實期權 IV / Greeks 分析（Finnhub 免費方案不提供期權鏈數據）。交易決策及風險自負。
@@ -561,6 +644,58 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes):
   </div>
   <div class="footer-meta">Generated {now_hkt.strftime('%Y-%m-%d %H:%M')} HKT · Data: Finnhub</div>
 </div>
+
+<script>
+  // Read-only browse data generated at build time - editing watchlist happens in
+  // config/watchlist.json in the repo, not here.
+  const BROWSE_DATA = {browse_data};
+
+  function populateBrowse() {{
+    const select = document.getElementById('browseSelect');
+    const chips = document.getElementById('browseChips');
+    BROWSE_DATA.forEach((item, idx) => {{
+      const opt = document.createElement('option');
+      opt.value = item.symbol;
+      opt.textContent = `${{item.symbol}} · Conv ${{item.conviction}}`;
+      select.appendChild(opt);
+
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'browse-chip' + (idx === 0 ? ' active' : '');
+      chip.textContent = item.symbol;
+      chip.onclick = () => {{
+        select.value = item.symbol;
+        renderBrowseDetail(item.symbol);
+      }};
+      chips.appendChild(chip);
+    }});
+    if (BROWSE_DATA.length) renderBrowseDetail(BROWSE_DATA[0].symbol);
+  }}
+
+  function renderBrowseDetail(symbol) {{
+    const item = BROWSE_DATA.find(i => i.symbol === symbol);
+    const panel = document.getElementById('browseDetail');
+    if (!item) {{ panel.innerHTML = ''; return; }}
+
+    document.querySelectorAll('.browse-chip').forEach(c => {{
+      c.classList.toggle('active', c.textContent === symbol);
+    }});
+
+    const changeColor = item.day_change_pct >= 0 ? '#1a7a3c' : '#c0392b';
+    panel.innerHTML = `
+      <div class="bd-item"><div class="bd-label">Strategy</div><div class="bd-value">${{item.strategy}}</div></div>
+      <div class="bd-item"><div class="bd-label">Conviction</div><div class="bd-value">${{item.conviction}} / 10</div></div>
+      <div class="bd-item"><div class="bd-label">Trend Score</div><div class="bd-value">${{item.trend_score}}</div></div>
+      <div class="bd-item"><div class="bd-label">Day Change</div><div class="bd-value" style="color:${{changeColor}}">${{item.day_change_pct}}%</div></div>
+      <div class="bd-item"><div class="bd-label">RSI</div><div class="bd-value">${{item.rsi !== null ? item.rsi : '—'}}</div></div>
+      <div class="bd-item"><div class="bd-label">Blackout</div><div class="bd-value">${{item.is_blackout ? 'YES' : 'No'}}</div></div>
+      <div class="bd-item"><div class="bd-label">History Depth</div><div class="bd-value">${{item.has_full_history ? 'Full' : 'Building'}}</div></div>
+      <div class="bd-theme">${{item.theme}}</div>
+    `;
+  }}
+
+  populateBrowse();
+</script>
 </body>
 </html>
 """
@@ -596,7 +731,7 @@ def main():
         print("ERROR: no watchlist data available, aborting render.", file=sys.stderr)
         sys.exit(1)
 
-    html = render_html(confidence, classification, tonight, long_term, avoid, quotes)
+    html = render_html(confidence, classification, tonight, long_term, avoid, quotes, scored_watchlist)
     OUTPUT_PATH.write_text(html, encoding="utf-8")
     save_json(DATA_DIR / "history.json", history)
 
