@@ -13,5 +13,9 @@
   "sector_etfs": ["XLK", "XLF", "XLE", "XLV", "XLY", "XLP", "XLI", "XLU", "XLB", "XLRE", "XLC"],
   "history_lookback_days": 60,
   "min_history_for_trend": 20,
-  "timezone_display": "Asia/Hong_Kong"
+  "timezone_display": "Asia/Hong_Kong",
+  "screener": {
+    "source": "sp500",
+    "max_candidates": null
+  }
 }
