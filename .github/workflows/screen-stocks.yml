@@ -1,0 +1,46 @@
+name: Auto-Screen Stocks (4-Factor Filter)
+
+on:
+  workflow_dispatch: {}   # manual trigger - screening ~100 tickers takes roughly 13-15 min
+
+permissions:
+  contents: write
+
+jobs:
+  screen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run 4-factor screener
+        env:
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
+        run: python scripts/screen_stocks.py
+
+      - name: Backfill history for any newly-added symbols
+        env:
+          TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
+        run: python scripts/backfill_history.py
+
+      - name: Regenerate dashboard
+        env:
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+        run: python scripts/generate_dashboard.py
+
+      - name: Commit updated watchlist + history + dashboard
+        run: |
+          git config user.name "pm-dashboard-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add config/watchlist.json data/history.json index.html
+          git diff --quiet --cached || git commit -m "Auto-screen watchlist: $(date -u +%Y-%m-%d)"
+          git push
