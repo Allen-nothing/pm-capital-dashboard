@@ -1,15 +1,7 @@
 {
-  "_comment": "Candidate tickers the auto-screener scans against your 4 filters (Price>SMA200, MarketCap>2B, Beta>1, $Volume(1mo)>900M). Add/remove tickers freely - more tickers = longer screening run (~8s per ticker due to free-tier rate limits). Starter list below is a broad spread of well-known large/mega-cap US names across sectors; not exhaustive.",
+  "_comment": "Extra tickers to ALWAYS include in the screener alongside the auto-fetched S&P 500 list - useful for names you want considered that aren't (yet) S&P 500 constituents. Leave empty [] if you don't want any extras. To scan ONLY this list instead of S&P 500, set screener.source to \"manual\" in settings.json.",
   "universe": [
-    "AAPL", "MSFT", "NVDA", "GOOGL", "GOOG", "AMZN", "META", "TSLA", "AVGO", "AMD",
-    "NFLX", "CRM", "ORCL", "ADBE", "INTC", "QCOM", "TXN", "AMAT", "MU", "LRCX",
-    "PLTR", "SNOW", "CRWD", "PANW", "NET", "DDOG", "SMCI", "ANET", "MRVL", "NOW",
-    "JPM", "BAC", "WFC", "GS", "MS", "V", "MA", "AXP", "SCHW", "BLK",
-    "UNH", "JNJ", "LLY", "PFE", "MRK", "ABBV", "TMO", "ABT", "DHR", "BMY",
-    "XOM", "CVX", "COP", "SLB", "EOG", "OXY", "PXD", "MPC", "PSX", "VLO",
-    "WMT", "COST", "HD", "LOW", "TGT", "NKE", "SBUX", "MCD", "DIS", "CMCSA",
-    "CAT", "DE", "BA", "HON", "GE", "LMT", "RTX", "UPS", "FDX", "UNP",
-    "MSTR", "COIN", "SHOP", "UBER", "ABNB", "SQ", "PYPL", "SPOT", "RBLX", "DKNG",
-    "TSM", "ASML", "ARM", "ADI", "KLAC", "CDNS", "SNPS", "APP", "TEAM", "WDAY"
+    "CRWV",
+    "MSTR"
   ]
 }
