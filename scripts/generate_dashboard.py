@@ -236,22 +236,19 @@ def classify_confidence(score):
     if score >= cfg["full_deploy_threshold"]:
         return {
             "label_zh": "全倉部署",
-            "label_en": "AGGRESSIVE",
-            "sub_zh": "Deploy 75-100%",
+            "sub_zh": "建議部署 75-100%",
             "color": "green",
         }
     elif score >= cfg["selective_threshold"]:
         return {
             "label_zh": "選擇性部署",
-            "label_en": "SELECTIVE",
-            "sub_zh": "Deploy 25-50%",
+            "sub_zh": "建議部署 25-50%",
             "color": "gold",
         }
     else:
         return {
             "label_zh": "空倉觀望",
-            "label_en": "DEFENSIVE",
-            "sub_zh": "Deploy 0%, Cash",
+            "sub_zh": "建議部署 0%，持現金",
             "color": "red",
         }
 
@@ -264,20 +261,20 @@ def strategy_for(score, rsi_val):
     """Heuristic tag only - NOT real options/IV analytics (see module docstring)."""
     if rsi_val is None:
         if score >= 60:
-            return "Momentum Long (building history)"
+            return "動能做多（歷史數據累積中）"
         elif score <= 40:
-            return "Avoid / Wait for data"
+            return "避免 / 等待更多數據"
         else:
-            return "Watch — Insufficient History"
+            return "觀察 — 歷史數據不足"
     if score >= 60 and 40 <= rsi_val <= 68:
-        return "Put Credit Spread"
+        return "Put Credit Spread（賣出看跌價差）"
     if score >= 65 and rsi_val > 68:
-        return "Long Calls / Trend Continuation"
+        return "買入 Call / 趨勢延續"
     if score <= 40 and rsi_val < 35:
-        return "Call Credit Spread (fade bounce)"
+        return "Call Credit Spread（淡倉反彈）"
     if score <= 35:
-        return "No Trade"
-    return "Watch / No Edge"
+        return "不建議交易"
+    return "觀察 / 無明顯優勢"
 
 
 def score_watchlist(quotes):
@@ -305,12 +302,12 @@ def score_watchlist(quotes):
 
         results.append({
             "symbol": sym,
-            "theme": item.get("theme", "Trend Leader"),
+            "theme": item.get("theme", "趨勢領先股"),
             "trend_score": round(ts, 1),
             "conviction": conviction,
             "rsi": round(rsi_val, 1) if rsi_val is not None else None,
             "day_change_pct": round(day_change, 2),
-            "strategy": "NO TRADE (earnings blackout)" if is_blackout else strategy_for(ts, rsi_val),
+            "strategy": "避免交易（財報前夕）" if is_blackout else strategy_for(ts, rsi_val),
             "is_blackout": is_blackout,
             "has_full_history": is_real,
         })
@@ -353,34 +350,33 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes, s
     proxy_note = ""
     if confidence["proxy_mode"]:
         proxy_note = (
-            '<p class="proxy-note">⚠ Trend history still building (need '
-            f'{MIN_HISTORY_FOR_TREND} trading days) — scores currently use a '
-            "same-day % change proxy and will sharpen over the next few weeks.</p>"
+            f'<p class="proxy-note">⚠ 趨勢歷史數據仍在累積中（需要 {MIN_HISTORY_FOR_TREND} '
+            "個交易日）— 目前分數暫用當日漲跌幅代理計算，數週內會逐漸精準。</p>"
         )
 
     def stock_card_tonight():
         return f"""
         <div class="card card-trade">
-          <div class="card-label">今晚交易 · Tonight's Trade</div>
+          <div class="card-label">今晚交易</div>
           <div class="card-ticker">{tonight['symbol']}</div>
           <div class="card-detail">{tonight['strategy']}</div>
-          <div class="card-sub">Conv {tonight['conviction']}</div>
+          <div class="card-sub">信心分數 {tonight['conviction']}</div>
         </div>"""
 
     def stock_card_longterm():
         return f"""
         <div class="card card-longterm">
-          <div class="card-label">長線首選 · Long-Term Pick</div>
+          <div class="card-label">長線首選</div>
           <div class="card-ticker"><span class="dot">🟢</span>{long_term['symbol']}</div>
           <div class="card-detail">{long_term['theme']}</div>
-          <div class="card-sub">Score {long_term['trend_score']}</div>
+          <div class="card-sub">評分 {long_term['trend_score']}</div>
         </div>"""
 
     def stock_card_avoid():
-        reason = "NO TRADE (earnings blackout)" if avoid["is_blackout"] else "NO TRADE"
+        reason = "避免交易（財報前夕）" if avoid["is_blackout"] else "避免交易"
         return f"""
         <div class="card card-avoid">
-          <div class="card-label">避免交易 · Avoid</div>
+          <div class="card-label">避免交易</div>
           <div class="card-ticker"><span class="dot">🔴</span>{avoid['symbol']}</div>
           <div class="card-detail">{reason}</div>
         </div>"""
@@ -390,7 +386,7 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes, s
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PM Capital Allocation Dashboard · {date_str}</title>
+<title>PM 資產配置儀表板 · {date_str}</title>
 <style>
   :root {{
     --navy: #12294a;
@@ -602,17 +598,17 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes, s
 <body>
 <div class="wrap">
   <div class="header">
-    <p class="eyebrow">PM CAPITAL ALLOCATION DASHBOARD</p>
-    <h1>{date_str} · EXECUTIVE BRIEF</h1>
+    <p class="eyebrow">PM 資產配置儀表板</p>
+    <h1>{date_str} · 高管簡報</h1>
   </div>
 
   {proxy_note}
 
   <div class="cards">
     <div class="card card-confidence">
-      <div class="card-label">PM 信心指數 · Confidence Index</div>
+      <div class="card-label">PM 信心指數</div>
       <div class="confidence-score">{dot} {confidence['score']}</div>
-      <div class="confidence-status">{classification['label_en']} · {classification['label_zh']}</div>
+      <div class="confidence-status">{classification['label_zh']}</div>
       <div class="confidence-sub">{classification['sub_zh']}</div>
     </div>
     {stock_card_tonight()}
@@ -620,7 +616,7 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes, s
     {stock_card_avoid()}
   </div>
 
-  <div class="action-bar">行動結論：{dot} {classification['label_zh']} {classification['label_en']}</div>
+  <div class="action-bar">行動結論：{dot} {classification['label_zh']}</div>
   <div class="action-detail">
     <div><span class="label">首選：</span>{tonight['symbol']} {tonight['strategy']}</div>
     <div><span class="label">建議部署：</span>{classification['sub_zh']}</div>
@@ -628,7 +624,7 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes, s
   </div>
 
   <div class="browse-section">
-    <h2>全部自選股評分 · Browse Watchlist ({len(scored_watchlist)} symbols)</h2>
+    <h2>全部自選股評分（共 {len(scored_watchlist)} 隻）</h2>
     <div class="browse-controls">
       <select id="browseSelect" onchange="renderBrowseDetail(this.value)"></select>
     </div>
@@ -637,12 +633,12 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes, s
   </div>
 
   <div class="disclaimer">
-    本頁面由程式自動生成，僅供個人參考，並非投資建議。Conviction 分數及策略標籤基於技術動能的簡化演算法，
+    本頁面由程式自動生成，僅供個人參考，並非投資建議。信心分數及策略標籤基於技術動能的簡化演算法，
     並非真實期權 IV / Greeks 分析（Finnhub 免費方案不提供期權鏈數據）。交易決策及風險自負。
-    Index components — Trend: {confidence['trend_component']} · VIX: {confidence['vix_component']} ·
-    Breadth: {confidence['breadth_component']} ({confidence['breadth_hits']}/{confidence['breadth_total']} sectors up).
+    指數組成 — 趨勢：{confidence['trend_component']} · VIX：{confidence['vix_component']} ·
+    板塊廣度：{confidence['breadth_component']}（{confidence['breadth_hits']}/{confidence['breadth_total']} 個板塊上升）。
   </div>
-  <div class="footer-meta">Generated {now_hkt.strftime('%Y-%m-%d %H:%M')} HKT · Data: Finnhub</div>
+  <div class="footer-meta">生成時間 {now_hkt.strftime('%Y-%m-%d %H:%M')} HKT · 數據來源：Finnhub</div>
 </div>
 
 <script>
@@ -656,7 +652,7 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes, s
     BROWSE_DATA.forEach((item, idx) => {{
       const opt = document.createElement('option');
       opt.value = item.symbol;
-      opt.textContent = `${{item.symbol}} · Conv ${{item.conviction}}`;
+      opt.textContent = `${{item.symbol}} · 信心 ${{item.conviction}}`;
       select.appendChild(opt);
 
       const chip = document.createElement('button');
@@ -683,13 +679,13 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes, s
 
     const changeColor = item.day_change_pct >= 0 ? '#1a7a3c' : '#c0392b';
     panel.innerHTML = `
-      <div class="bd-item"><div class="bd-label">Strategy</div><div class="bd-value">${{item.strategy}}</div></div>
-      <div class="bd-item"><div class="bd-label">Conviction</div><div class="bd-value">${{item.conviction}} / 10</div></div>
-      <div class="bd-item"><div class="bd-label">Trend Score</div><div class="bd-value">${{item.trend_score}}</div></div>
-      <div class="bd-item"><div class="bd-label">Day Change</div><div class="bd-value" style="color:${{changeColor}}">${{item.day_change_pct}}%</div></div>
+      <div class="bd-item"><div class="bd-label">策略</div><div class="bd-value">${{item.strategy}}</div></div>
+      <div class="bd-item"><div class="bd-label">信心分數</div><div class="bd-value">${{item.conviction}} / 10</div></div>
+      <div class="bd-item"><div class="bd-label">趨勢評分</div><div class="bd-value">${{item.trend_score}}</div></div>
+      <div class="bd-item"><div class="bd-label">當日漲跌</div><div class="bd-value" style="color:${{changeColor}}">${{item.day_change_pct}}%</div></div>
       <div class="bd-item"><div class="bd-label">RSI</div><div class="bd-value">${{item.rsi !== null ? item.rsi : '—'}}</div></div>
-      <div class="bd-item"><div class="bd-label">Blackout</div><div class="bd-value">${{item.is_blackout ? 'YES' : 'No'}}</div></div>
-      <div class="bd-item"><div class="bd-label">History Depth</div><div class="bd-value">${{item.has_full_history ? 'Full' : 'Building'}}</div></div>
+      <div class="bd-item"><div class="bd-label">財報封鎖期</div><div class="bd-value">${{item.is_blackout ? '是' : '否'}}</div></div>
+      <div class="bd-item"><div class="bd-label">歷史數據深度</div><div class="bd-value">${{item.has_full_history ? '完整' : '累積中'}}</div></div>
       <div class="bd-theme">${{item.theme}}</div>
     `;
   }}
@@ -735,7 +731,7 @@ def main():
     OUTPUT_PATH.write_text(html, encoding="utf-8")
     save_json(DATA_DIR / "history.json", history)
 
-    print(f"Confidence Index: {confidence['score']} ({classification['label_en']})")
+    print(f"Confidence Index: {confidence['score']} ({classification['label_zh']})")
     print(f"Tonight: {tonight['symbol']} — {tonight['strategy']} (Conv {tonight['conviction']})")
     print(f"Long-term: {long_term['symbol']}")
     print(f"Avoid: {avoid['symbol']}")
