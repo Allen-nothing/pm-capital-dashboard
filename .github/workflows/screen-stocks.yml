@@ -9,6 +9,7 @@ permissions:
 jobs:
   screen:
     runs-on: ubuntu-latest
+    timeout-minutes: 60   # full S&P 500 scan typically takes ~25-35 min
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
