@@ -137,7 +137,6 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    flex-wrap: wrap;
     margin-bottom: 14px;
   }
   .browse-controls select {
@@ -146,27 +145,30 @@
     border-radius: 6px;
     border: 1px solid #c8912a;
     background: #fff;
-    min-width: 220px;
+    min-width: 240px;
+    flex: 1;
+    max-width: 360px;
   }
-  .browse-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .browse-chip {
-    font-size: 13px;
+  .browse-nav {
+    font-size: 16px;
     font-weight: 700;
-    padding: 6px 12px;
-    border-radius: 999px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
     border: 1px solid #d1d5db;
     background: #fff;
+    color: var(--navy);
     cursor: pointer;
-    color: var(--text-dark);
+    flex-shrink: 0;
+    line-height: 1;
   }
-  .browse-chip.active {
-    background: var(--navy);
-    color: #fff;
-    border-color: var(--navy);
+  .browse-nav:hover {
+    background: var(--gray-bg);
+  }
+  .browse-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: -8px 0 14px 0;
   }
   .browse-detail {
     background: var(--gray-bg);
@@ -312,18 +314,20 @@
 
   <div class="browse-section">
     <h2>全部自選股評分（共 46 隻）</h2>
+    <div class="browse-hint">按信心分數由高至低排序</div>
     <div class="browse-controls">
+      <button type="button" class="browse-nav" onclick="stepBrowse(-1)" aria-label="上一隻">‹</button>
       <select id="browseSelect" onchange="renderBrowseDetail(this.value)"></select>
+      <button type="button" class="browse-nav" onclick="stepBrowse(1)" aria-label="下一隻">›</button>
     </div>
-    <div class="browse-chips" id="browseChips"></div>
     <div class="browse-detail" id="browseDetail" style="margin-top:14px;"></div>
   </div>
   
   <div class="browse-section buffett-section">
     <h2>股神巴菲特持倉 · Berkshire Hathaway 13F（2026-06-30 季報）</h2>
     <div class="buffett-donut-wrap">
-      <div class="buffett-donut" style="background: conic-gradient(#12294a 0.00% 22.04%, #c8912a 22.04% 39.18%, #1a7a3c 39.18% 51.80%, #c0392b 51.80% 62.66%, #6b3e10 62.66% 71.86%, #4a6fa5 71.86% 76.53%, #8b6914 76.53% 80.83%, #4a9e6b 80.83% 84.73%, #a85c4c 84.73% 88.46%, #9c8060 88.46% 91.03%, #12294a 91.03% 99.99%);"></div>
-      <ul class="buffett-legend"><li><span class="legend-swatch" style="background:#12294a"></span>Apple Inc · 22.04%</li><li><span class="legend-swatch" style="background:#c8912a"></span>American Express Co · 17.14%</li><li><span class="legend-swatch" style="background:#1a7a3c"></span>Alphabet Inc · 12.62%</li><li><span class="legend-swatch" style="background:#c0392b"></span>Coca Cola Co · 10.86%</li><li><span class="legend-swatch" style="background:#6b3e10"></span>Bank Of Amer Corp · 9.2%</li><li><span class="legend-swatch" style="background:#4a6fa5"></span>Chevron Corporation · 4.67%</li><li><span class="legend-swatch" style="background:#8b6914"></span>Occidental Pete Corp · 4.3%</li><li><span class="legend-swatch" style="background:#4a9e6b"></span>Chubb Limited · 3.9%</li><li><span class="legend-swatch" style="background:#a85c4c"></span>Moodys Corp · 3.73%</li><li><span class="legend-swatch" style="background:#9c8060"></span>Kraft Heinz Co · 2.57%</li><li><span class="legend-swatch" style="background:#12294a"></span>其他 (Other) · 8.96%</li></ul>
+      <div class="buffett-donut" style="background: conic-gradient(#12294a 0.00% 22.04%, #c8912a 22.04% 39.18%, #1a7a3c 39.18% 51.80%, #c0392b 51.80% 62.66%, #6b3e10 62.66% 71.86%, #4a6fa5 71.86% 76.53%, #8b6914 76.53% 80.83%, #4a9e6b 80.83% 84.73%, #a85c4c 84.73% 88.46%, #9c8060 88.46% 91.03%, #9ca3af 91.03% 99.99%);"></div>
+      <ul class="buffett-legend"><li><span class="legend-swatch" style="background:#12294a"></span>Apple Inc · 22.04%</li><li><span class="legend-swatch" style="background:#c8912a"></span>American Express Co · 17.14%</li><li><span class="legend-swatch" style="background:#1a7a3c"></span>Alphabet Inc · 12.62%</li><li><span class="legend-swatch" style="background:#c0392b"></span>Coca Cola Co · 10.86%</li><li><span class="legend-swatch" style="background:#6b3e10"></span>Bank Of Amer Corp · 9.2%</li><li><span class="legend-swatch" style="background:#4a6fa5"></span>Chevron Corporation · 4.67%</li><li><span class="legend-swatch" style="background:#8b6914"></span>Occidental Pete Corp · 4.3%</li><li><span class="legend-swatch" style="background:#4a9e6b"></span>Chubb Limited · 3.9%</li><li><span class="legend-swatch" style="background:#a85c4c"></span>Moodys Corp · 3.73%</li><li><span class="legend-swatch" style="background:#9c8060"></span>Kraft Heinz Co · 2.57%</li><li><span class="legend-swatch" style="background:#9ca3af"></span>其他 (Other) · 8.96%</li></ul>
     </div>
     <div class="buffett-meta">
       持倉總值 $299253.6B · 共 26 個持倉部位 ·
@@ -337,7 +341,7 @@
     指數組成 — 趨勢：70.7 · VIX：83.4 ·
     板塊廣度：81.8（9/11 個板塊上升）。
   </div>
-  <div class="footer-meta">生成時間 2026-09-18 12:36 HKT · 數據來源：Finnhub</div>
+  <div class="footer-meta">生成時間 2026-09-18 16:35 HKT · 數據來源：Finnhub</div>
 </div>
 
 <script>
@@ -347,34 +351,28 @@
 
   function populateBrowse() {
     const select = document.getElementById('browseSelect');
-    const chips = document.getElementById('browseChips');
-    BROWSE_DATA.forEach((item, idx) => {
+    BROWSE_DATA.forEach((item) => {
       const opt = document.createElement('option');
       opt.value = item.symbol;
       opt.textContent = `${item.symbol} · 信心 ${item.conviction}`;
       select.appendChild(opt);
-
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'browse-chip' + (idx === 0 ? ' active' : '');
-      chip.textContent = item.symbol;
-      chip.onclick = () => {
-        select.value = item.symbol;
-        renderBrowseDetail(item.symbol);
-      };
-      chips.appendChild(chip);
     });
     if (BROWSE_DATA.length) renderBrowseDetail(BROWSE_DATA[0].symbol);
+  }
+
+  function stepBrowse(direction) {
+    const select = document.getElementById('browseSelect');
+    if (!BROWSE_DATA.length) return;
+    let idx = BROWSE_DATA.findIndex(i => i.symbol === select.value);
+    idx = (idx + direction + BROWSE_DATA.length) % BROWSE_DATA.length;
+    select.value = BROWSE_DATA[idx].symbol;
+    renderBrowseDetail(BROWSE_DATA[idx].symbol);
   }
 
   function renderBrowseDetail(symbol) {
     const item = BROWSE_DATA.find(i => i.symbol === symbol);
     const panel = document.getElementById('browseDetail');
     if (!item) { panel.innerHTML = ''; return; }
-
-    document.querySelectorAll('.browse-chip').forEach(c => {
-      c.classList.toggle('active', c.textContent === symbol);
-    });
 
     const changeColor = item.day_change_pct >= 0 ? '#1a7a3c' : '#c0392b';
     panel.innerHTML = `
