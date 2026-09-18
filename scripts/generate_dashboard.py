@@ -67,6 +67,7 @@ def save_json(path, data):
 settings = load_json(CONFIG_DIR / "settings.json")
 watchlist_cfg = load_json(CONFIG_DIR / "watchlist.json")["watchlist"]
 history = load_json(DATA_DIR / "history.json", default={})
+buffett_data = load_json(DATA_DIR / "buffett_holdings.json", default=None)
 
 TODAY = datetime.date.today().isoformat()
 LOOKBACK = settings.get("history_lookback_days", 60)
@@ -338,6 +339,53 @@ COLOR_MAP = {
     "red": "#c0392b",
 }
 
+DONUT_COLORS = ["#12294a", "#c8912a", "#1a7a3c", "#c0392b", "#6b3e10",
+                "#4a6fa5", "#8b6914", "#4a9e6b", "#a85c4c", "#9c8060"]
+
+
+def build_buffett_section():
+    """Returns an HTML block for the Buffett/Berkshire 13F donut chart, or an
+    empty string if data/buffett_holdings.json hasn't been fetched yet."""
+    if not buffett_data or not buffett_data.get("holdings"):
+        return ""
+
+    holdings = buffett_data["holdings"]
+    colors = [DONUT_COLORS[i % len(DONUT_COLORS)] for i in range(len(holdings))]
+
+    # Build conic-gradient stops from cumulative percentages
+    stops = []
+    cum = 0.0
+    for h, color in zip(holdings, colors):
+        start = cum
+        cum += h["pct"]
+        stops.append(f"{color} {start:.2f}% {cum:.2f}%")
+    gradient = ", ".join(stops)
+
+    legend_items = "".join(
+        f'<li><span class="legend-swatch" style="background:{color}"></span>'
+        f'{h["issuer"].title()} · {h["pct"]}%</li>'
+        for h, color in zip(holdings, colors)
+    )
+
+    report_date = buffett_data.get("reportDate", "—")
+    total_b = buffett_data.get("totalValueUsd", 0) / 1e9
+    positions = buffett_data.get("positionsCount", "—")
+    source = buffett_data.get("source", "https://www.sec.gov/")
+
+    return f"""
+  <div class="browse-section buffett-section">
+    <h2>股神巴菲特持倉 · Berkshire Hathaway 13F（{report_date} 季報）</h2>
+    <div class="buffett-donut-wrap">
+      <div class="buffett-donut" style="background: conic-gradient({gradient});"></div>
+      <ul class="buffett-legend">{legend_items}</ul>
+    </div>
+    <div class="buffett-meta">
+      持倉總值 ${total_b:.1f}B · 共 {positions} 個持倉部位 ·
+      數據源：<a href="{source}" target="_blank" rel="noopener">SEC EDGAR 13F-HR</a>（官方季度申報，非即時）
+    </div>
+  </div>"""
+
+
 def render_html(confidence, classification, tonight, long_term, avoid, quotes, scored_watchlist):
     color = COLOR_MAP[classification["color"]]
     dot = {"green": "🟢", "gold": "🟡", "red": "🔴"}[classification["color"]]
@@ -576,6 +624,59 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes, s
   @media (max-width: 800px) {{
     .browse-detail {{ grid-template-columns: repeat(2, 1fr); }}
   }}
+  .buffett-donut-wrap {{
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }}
+  .buffett-donut {{
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: relative;
+  }}
+  .buffett-donut::after {{
+    content: '';
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: #fff;
+  }}
+  .buffett-legend {{
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 13.5px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }}
+  .buffett-legend li {{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }}
+  .legend-swatch {{
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    display: inline-block;
+  }}
+  .buffett-meta {{
+    margin-top: 14px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }}
+  .buffett-meta a {{
+    color: var(--navy);
+  }}
   .disclaimer {{
     margin-top: 18px;
     padding: 12px 16px;
@@ -631,6 +732,7 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes, s
     <div class="browse-chips" id="browseChips"></div>
     <div class="browse-detail" id="browseDetail" style="margin-top:14px;"></div>
   </div>
+  {build_buffett_section()}
 
   <div class="disclaimer">
     本頁面由程式自動生成，僅供個人參考，並非投資建議。信心分數及策略標籤基於技術動能的簡化演算法，
