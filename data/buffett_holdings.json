@@ -1,0 +1,65 @@
+{
+  "manager": "Berkshire Hathaway Inc",
+  "reportDate": "2026-06-30",
+  "filingDate": "2026-08-14",
+  "totalValueUsd": 299253556246000.0,
+  "positionsCount": 26,
+  "holdings": [
+    {
+      "issuer": "APPLE INC",
+      "value_usd": 65950296923000.0,
+      "pct": 22.04
+    },
+    {
+      "issuer": "AMERICAN EXPRESS CO",
+      "value_usd": 51282319275000.0,
+      "pct": 17.14
+    },
+    {
+      "issuer": "ALPHABET INC",
+      "value_usd": 37764088383000.0,
+      "pct": 12.62
+    },
+    {
+      "issuer": "COCA COLA CO",
+      "value_usd": 32508000000000.0,
+      "pct": 10.86
+    },
+    {
+      "issuer": "BANK OF AMER CORP",
+      "value_usd": 27543790975000.0,
+      "pct": 9.2
+    },
+    {
+      "issuer": "CHEVRON CORPORATION",
+      "value_usd": 13986141890000.0,
+      "pct": 4.67
+    },
+    {
+      "issuer": "OCCIDENTAL PETE CORP",
+      "value_usd": 12868205304000.0,
+      "pct": 4.3
+    },
+    {
+      "issuer": "CHUBB LIMITED",
+      "value_usd": 11670066615000.0,
+      "pct": 3.9
+    },
+    {
+      "issuer": "MOODYS CORP",
+      "value_usd": 11173435852000.0,
+      "pct": 3.73
+    },
+    {
+      "issuer": "KRAFT HEINZ CO",
+      "value_usd": 7691494401000.0,
+      "pct": 2.57
+    },
+    {
+      "issuer": "其他 (Other)",
+      "value_usd": 26815716628000.0,
+      "pct": 8.96
+    }
+  ],
+  "source": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001067983&type=13F-HR"
+}
