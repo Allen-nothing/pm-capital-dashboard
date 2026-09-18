@@ -341,6 +341,7 @@ COLOR_MAP = {
 
 DONUT_COLORS = ["#12294a", "#c8912a", "#1a7a3c", "#c0392b", "#6b3e10",
                 "#4a6fa5", "#8b6914", "#4a9e6b", "#a85c4c", "#9c8060"]
+OTHER_SLICE_COLOR = "#9ca3af"  # neutral gray, reserved for "其他 (Other)" so it never collides with a real holding
 
 
 def build_buffett_section():
@@ -350,7 +351,14 @@ def build_buffett_section():
         return ""
 
     holdings = buffett_data["holdings"]
-    colors = [DONUT_COLORS[i % len(DONUT_COLORS)] for i in range(len(holdings))]
+    colors = []
+    palette_i = 0
+    for h in holdings:
+        if h["issuer"].startswith("其他"):
+            colors.append(OTHER_SLICE_COLOR)
+        else:
+            colors.append(DONUT_COLORS[palette_i % len(DONUT_COLORS)])
+            palette_i += 1
 
     # Build conic-gradient stops from cumulative percentages
     stops = []
@@ -568,7 +576,6 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes, s
     display: flex;
     align-items: center;
     gap: 10px;
-    flex-wrap: wrap;
     margin-bottom: 14px;
   }}
   .browse-controls select {{
@@ -577,27 +584,30 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes, s
     border-radius: 6px;
     border: 1px solid #c8912a;
     background: #fff;
-    min-width: 220px;
+    min-width: 240px;
+    flex: 1;
+    max-width: 360px;
   }}
-  .browse-chips {{
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }}
-  .browse-chip {{
-    font-size: 13px;
+  .browse-nav {{
+    font-size: 16px;
     font-weight: 700;
-    padding: 6px 12px;
-    border-radius: 999px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
     border: 1px solid #d1d5db;
     background: #fff;
+    color: var(--navy);
     cursor: pointer;
-    color: var(--text-dark);
+    flex-shrink: 0;
+    line-height: 1;
   }}
-  .browse-chip.active {{
-    background: var(--navy);
-    color: #fff;
-    border-color: var(--navy);
+  .browse-nav:hover {{
+    background: var(--gray-bg);
+  }}
+  .browse-hint {{
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: -8px 0 14px 0;
   }}
   .browse-detail {{
     background: var(--gray-bg);
@@ -726,10 +736,12 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes, s
 
   <div class="browse-section">
     <h2>全部自選股評分（共 {len(scored_watchlist)} 隻）</h2>
+    <div class="browse-hint">按信心分數由高至低排序</div>
     <div class="browse-controls">
+      <button type="button" class="browse-nav" onclick="stepBrowse(-1)" aria-label="上一隻">‹</button>
       <select id="browseSelect" onchange="renderBrowseDetail(this.value)"></select>
+      <button type="button" class="browse-nav" onclick="stepBrowse(1)" aria-label="下一隻">›</button>
     </div>
-    <div class="browse-chips" id="browseChips"></div>
     <div class="browse-detail" id="browseDetail" style="margin-top:14px;"></div>
   </div>
   {build_buffett_section()}
@@ -750,34 +762,28 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes, s
 
   function populateBrowse() {{
     const select = document.getElementById('browseSelect');
-    const chips = document.getElementById('browseChips');
-    BROWSE_DATA.forEach((item, idx) => {{
+    BROWSE_DATA.forEach((item) => {{
       const opt = document.createElement('option');
       opt.value = item.symbol;
       opt.textContent = `${{item.symbol}} · 信心 ${{item.conviction}}`;
       select.appendChild(opt);
-
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'browse-chip' + (idx === 0 ? ' active' : '');
-      chip.textContent = item.symbol;
-      chip.onclick = () => {{
-        select.value = item.symbol;
-        renderBrowseDetail(item.symbol);
-      }};
-      chips.appendChild(chip);
     }});
     if (BROWSE_DATA.length) renderBrowseDetail(BROWSE_DATA[0].symbol);
+  }}
+
+  function stepBrowse(direction) {{
+    const select = document.getElementById('browseSelect');
+    if (!BROWSE_DATA.length) return;
+    let idx = BROWSE_DATA.findIndex(i => i.symbol === select.value);
+    idx = (idx + direction + BROWSE_DATA.length) % BROWSE_DATA.length;
+    select.value = BROWSE_DATA[idx].symbol;
+    renderBrowseDetail(BROWSE_DATA[idx].symbol);
   }}
 
   function renderBrowseDetail(symbol) {{
     const item = BROWSE_DATA.find(i => i.symbol === symbol);
     const panel = document.getElementById('browseDetail');
     if (!item) {{ panel.innerHTML = ''; return; }}
-
-    document.querySelectorAll('.browse-chip').forEach(c => {{
-      c.classList.toggle('active', c.textContent === symbol);
-    }});
 
     const changeColor = item.day_change_pct >= 0 ? '#1a7a3c' : '#c0392b';
     panel.innerHTML = `
