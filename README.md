@@ -109,13 +109,16 @@ python scripts/generate_dashboard.py
 config/watchlist.json   自選股池 + 主題標籤（可手動編輯，或由 screen_stocks.py 自動產生）
 config/universe.json    自動選股用：額外追蹤嘅非標普500股票
 config/settings.json    信心指數門檻／權重、板塊 ETF、VIX 代理 symbol、screener 設定
-data/history.json       逐日收盤價歷史（自動累積，或由 backfill_history.py 一次性補齊）
-scripts/generate_dashboard.py   主程式：產生 index.html
-scripts/backfill_history.py     一次性攞真實歷史數據（Twelve Data）
-scripts/screen_stocks.py        自動選股：4因子篩選標普500成分股
+data/history.json           逐日收盤價歷史（自動累積，或由 backfill_history.py 一次性補齊）
+data/buffett_holdings.json  Berkshire Hathaway 最新一季 13F 持倉（由 fetch_buffett_holdings.py 產生）
+scripts/generate_dashboard.py     主程式：產生 index.html
+scripts/backfill_history.py       一次性攞真實歷史數據（Twelve Data）
+scripts/screen_stocks.py          自動選股：4因子篩選標普500成分股
+scripts/fetch_buffett_holdings.py 攞 Berkshire Hathaway 最新 13F 持倉（SEC EDGAR）
 .github/workflows/daily-dashboard.yml     每日排程（00:00 UTC = 08:00 HKT）
 .github/workflows/backfill-history.yml    手動觸發：補歷史數據
 .github/workflows/screen-stocks.yml       手動觸發：自動選股
+.github/workflows/buffett-holdings.yml    每週一自動檢查 + 手動觸發：更新巴菲特持倉
 index.html               輸出頁面（每日自動更新並 commit 回 repo）
 ```
 
@@ -130,6 +133,30 @@ Confidence = Trend×0.4 + VIX×0.3 + Breadth×0.3   (0-100)
 
 分類：`>75` 全倉部署 · `60-75` 選擇性部署 25-50% · `<60` 空倉觀望
 （門檻可在 `config/settings.json` 修改）
+
+## 股神巴菲特持倉扇形圖（Berkshire Hathaway 13F）
+
+自選股評分下面會多一格扇形圖（donut chart），顯示 Berkshire Hathaway 最新一季 13F
+申報嘅十大持倉分佈（其餘部位歸做「其他」）。
+
+**數據來源：** SEC EDGAR 官方13F季度申報（`https://data.sec.gov`），免費、唔使API key、
+官方一手數據。
+
+**⚠️ 重要限制：**
+- 13F 係**季度**申報，法律要求喺季度結束後**45日內**申報，所以呢個唔係即時持倉，
+  永遠有最多一季半嘅延遲（呢個係美國證監會披露制度本身嘅限制，唔係呢個工具嘅問題）
+- 淨係巴菲特/Berkshire，**冇包含美國官員（國會議員）持股**——搜尋過後發現目前冇乾淨、
+  免費嘅官員持股API（以前嘅免費社群數據源 House/Senate Stock Watcher 已經停止運作，
+  主流方案 Quiver Quantitative 要 $30/月起），如果之後想加返呢部分，可以再搵我
+
+**設定：**
+
+1. **Actions** 分頁 → 揀 **"Fetch Buffett Holdings (SEC 13F)"** → **"Run workflow"**
+   （首次要手動跑一次；之後會每個星期一自動檢查有冇新一季申報）
+2. 跑完（通常十幾秒，因為13F唔使歷史K線，唔受 Twelve Data 嗰種限流）會自動更新
+   `data/buffett_holdings.json` 同重新產生儀表板
+3. 如果嗰陣冇新一季申報（Berkshire 仲未交下一季），程式會識別到冇更新，直接跳過，
+   唔會浪費 commit
 
 ## 想接真實期權數據？
 
