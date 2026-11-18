@@ -25,8 +25,10 @@ This tool does not place trades and is not investment advice - it is a
 personal screening aid. All thresholds live in config/settings.json.
 """
 
+import html as html_lib
 import json
 import os
+import re
 import sys
 import time
 import datetime
@@ -394,11 +396,124 @@ def build_buffett_section():
   </div>"""
 
 
+# ---------------------------------------------------------------------------
+# Daily top-pick news tracking (bullish / bearish keyword analysis)
+# ---------------------------------------------------------------------------
+
+_news_cfg = settings.get("news", {})
+NEWS_LOOKBACK_DAYS = _news_cfg.get("lookback_days", 7)
+NEWS_MAX_ITEMS = _news_cfg.get("max_items", 8)
+
+# Transparent keyword heuristic - NOT real NLP. Tune these lists freely.
+BULLISH_WORDS = [
+    "beat", "beats", "surge", "surges", "soar", "soars", "jump", "jumps", "rally", "rallies",
+    "upgrade", "upgrades", "upgraded", "raises", "raised", "record", "strong", "growth",
+    "partnership", "contract", "wins", "win", "approval", "approved", "buyback", "outperform",
+    "bullish", "tops", "boost", "boosts", "expands", "expansion", "breakthrough", "accelerat\\w*",
+    "price target raised", "raises price target", "all-time high", "demand",
+]
+BEARISH_WORDS = [
+    "miss", "misses", "missed", "plunge", "plunges", "fall", "falls", "drop", "drops", "slump",
+    "slumps", "downgrade", "downgrades", "downgraded", "cut", "cuts", "lawsuit", "sued", "probe",
+    "investigation", "recall", "layoff", "layoffs", "warning", "warns", "weak", "decline",
+    "declines", "bearish", "sell-off", "selloff", "fraud", "delay", "delays", "ban", "tariff",
+    "tariffs", "short seller", "lowers price target", "price target cut", "concern", "concerns",
+]
+_BULL_RE = re.compile(r"\b(" + "|".join(BULLISH_WORDS) + r")\b", re.IGNORECASE)
+_BEAR_RE = re.compile(r"\b(" + "|".join(BEARISH_WORDS) + r")\b", re.IGNORECASE)
+
+
+def fetch_company_news(symbol):
+    """Finnhub /company-news (free tier). Returns a list, or None on failure."""
+    to_d = datetime.date.today()
+    from_d = to_d - datetime.timedelta(days=NEWS_LOOKBACK_DAYS)
+    try:
+        r = requests.get(
+            f"{BASE_URL}/company-news",
+            params={"symbol": symbol, "from": from_d.isoformat(), "to": to_d.isoformat(),
+                    "token": FINNHUB_TOKEN},
+            timeout=15,
+        )
+        r.raise_for_status()
+        data = r.json()
+        return data if isinstance(data, list) else None
+    except Exception as e:
+        print(f"  [warn] company-news fetch failed for {symbol}: {e}")
+        return None
+
+
+def classify_news(text):
+    """Returns (tag, matched_keywords). tag is 'bull', 'bear' or 'neutral'."""
+    bull = [m.lower() for m in _BULL_RE.findall(text)]
+    bear = [m.lower() for m in _BEAR_RE.findall(text)]
+    if len(bull) > len(bear):
+        return "bull", bull
+    if len(bear) > len(bull):
+        return "bear", bear
+    return "neutral", bull + bear
+
+
+def build_news_section(symbol):
+    """Independent news-tracking block for the day's top pick."""
+    raw = fetch_company_news(symbol)
+    items = []
+    if raw:
+        seen = set()
+        for n in sorted(raw, key=lambda x: x.get("datetime", 0), reverse=True):
+            headline = (n.get("headline") or "").strip()
+            key = headline.lower()
+            if not headline or key in seen:
+                continue
+            seen.add(key)
+            tag, kws = classify_news(headline + " " + (n.get("summary") or ""))
+            items.append({"headline": headline, "tag": tag, "kws": kws,
+                          "source": n.get("source") or "", "url": n.get("url") or "",
+                          "ts": n.get("datetime", 0)})
+            if len(items) >= NEWS_MAX_ITEMS:
+                break
+
+    head = (f'<div class="browse-section news-section"><h2>首選股新聞追蹤 · {html_lib.escape(symbol)}'
+            f'（近 {NEWS_LOOKBACK_DAYS} 日）</h2>')
+    if not items:
+        return head + '<div class="news-empty">暫時未有相關新聞，或新聞數據未能取得。</div></div>'
+
+    bull_n = sum(1 for i in items if i["tag"] == "bull")
+    bear_n = sum(1 for i in items if i["tag"] == "bear")
+    neu_n = len(items) - bull_n - bear_n
+    if bull_n > bear_n:
+        verdict, vcls = "偏利好", "bull"
+    elif bear_n > bull_n:
+        verdict, vcls = "偏利空", "bear"
+    else:
+        verdict, vcls = "中性／分歧", "neutral"
+
+    label = {"bull": "利好", "bear": "利空", "neutral": "中性"}
+    rows = []
+    for i in items:
+        t = (datetime.datetime.utcfromtimestamp(i["ts"]) + datetime.timedelta(hours=8)).strftime("%m-%d %H:%M") if i["ts"] else ""
+        title = html_lib.escape(i["headline"])
+        if i["url"].startswith("http"):
+            title = f'<a href="{html_lib.escape(i["url"], quote=True)}" target="_blank" rel="noopener noreferrer">{title}</a>'
+        kw = f'<span class="news-kw">關鍵詞：{html_lib.escape(", ".join(dict.fromkeys(i["kws"][:4])))}</span>' if i["kws"] else ""
+        rows.append(
+            f'<li><span class="news-tag {i["tag"]}">{label[i["tag"]]}</span>'
+            f'<div class="news-body"><div class="news-title">{title}</div>'
+            f'<div class="news-meta">{html_lib.escape(i["source"])} · {t} HKT {kw}</div></div></li>'
+        )
+
+    summary = (f'<div class="news-summary"><span class="news-verdict {vcls}">整體：{verdict}</span>'
+               f'<span>利好 {bull_n} · 利空 {bear_n} · 中性 {neu_n}</span></div>')
+    note = ('<div class="news-note">利好／利空由標題關鍵字簡單判斷，只屬參考，並非真正語意分析；'
+            '請以原文為準。</div>')
+    return head + summary + '<ul class="news-list">' + "".join(rows) + "</ul>" + note + "</div>"
+
+
 def render_html(confidence, classification, tonight, long_term, avoid, quotes, scored_watchlist):
     color = COLOR_MAP[classification["color"]]
     dot = {"green": "🟢", "gold": "🟡", "red": "🔴"}[classification["color"]]
     now_hkt = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
     date_str = now_hkt.strftime("%Y-%m-%d")
+    news_html = build_news_section(tonight["symbol"])
 
     # Full watchlist data for the client-side browse dropdown (view-only, no writes).
     browse_data = json.dumps(scored_watchlist, ensure_ascii=False)
@@ -561,6 +676,27 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes, s
     border-radius: 6px;
     margin: 4px 4px 0 4px;
   }}
+  .news-summary {{
+    display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+    font-size: 13px; color: var(--text-muted); margin-bottom: 10px;
+  }}
+  .news-verdict {{ font-weight: 700; padding: 3px 10px; border-radius: 999px; font-size: 13px; }}
+  .news-verdict.bull {{ background: #e6f4ea; color: #1a7a3c; }}
+  .news-verdict.bear {{ background: #fdecec; color: #c0392b; }}
+  .news-verdict.neutral {{ background: var(--gray-bg); color: #4b5563; }}
+  .news-list {{ list-style: none; margin: 0; padding: 0; }}
+  .news-list li {{ display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #eef0f2; }}
+  .news-tag {{ flex-shrink: 0; height: 22px; line-height: 22px; font-size: 12px; font-weight: 700;
+    padding: 0 8px; border-radius: 4px; }}
+  .news-tag.bull {{ background: #e6f4ea; color: #1a7a3c; }}
+  .news-tag.bear {{ background: #fdecec; color: #c0392b; }}
+  .news-tag.neutral {{ background: var(--gray-bg); color: #6b7280; }}
+  .news-title {{ font-size: 14px; font-weight: 600; line-height: 1.4; }}
+  .news-title a {{ color: var(--text-dark); text-decoration: none; }}
+  .news-title a:hover {{ text-decoration: underline; }}
+  .news-meta {{ font-size: 12px; color: var(--text-muted); margin-top: 2px; }}
+  .news-kw {{ margin-left: 6px; color: #9ca3af; }}
+  .news-empty, .news-note {{ font-size: 12.5px; color: var(--text-muted); margin-top: 8px; }}
   .browse-section {{
     margin-top: 24px;
     border: 1px solid #e5e7eb;
@@ -733,6 +869,8 @@ def render_html(confidence, classification, tonight, long_term, avoid, quotes, s
     <div><span class="label">建議部署：</span>{classification['sub_zh']}</div>
     <div class="avoid-text"><span class="label">避免：</span>{avoid['symbol']}</div>
   </div>
+
+  {news_html}
 
   <div class="browse-section">
     <h2>全部自選股評分（共 {len(scored_watchlist)} 隻）</h2>
